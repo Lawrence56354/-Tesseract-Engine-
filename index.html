@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <title>4D Tesseract Space Engine</title>
     <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
         body {
             margin: 0;
+            padding: 0;
             background-color: #111;
             color: #eee;
             font-family: monospace;
@@ -13,35 +18,38 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            box-sizing: border-box;
+            width: 100vw;
         }
         #canvas {
             display: block;
             background: #000;
             width: 100%;
-            flex-grow: 1;
+            flex: 1 1 auto; /* Fill remaining layout workspace exactly */
+            min-height: 0;
         }
         #controls {
             width: 100%;
-            padding: 6px;
-            background: #222;
-            box-sizing: border-box;
+            padding: 4px;
+            background: #1a1a1a;
+            flex: 0 0 auto; /* Lock block heights down completely */
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 4px;
+            gap: 3px;
+            border-top: 1px solid #333;
         }
         button {
-            background: #444;
+            background: #383838;
             color: #fff;
             border: none;
-            padding: 6px 2px;
-            border-radius: 4px;
+            padding: 4px 1px;
+            border-radius: 3px;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 10px;
             font-family: monospace;
+            font-weight: bold;
         }
         button:hover {
-            background: #555;
+            background: #4a4a4a;
         }
         button:active {
             background: #00ffcc;
@@ -50,10 +58,10 @@
         .label {
             grid-column: span 4;
             text-align: center;
-            font-size: 10px;
+            font-size: 9px;
             color: #00ffcc;
-            margin-top: 2px;
-            margin-bottom: 1px;
+            padding: 1px 0;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -89,7 +97,9 @@
             canvas.height = canvas.clientHeight;
         }
         window.addEventListener('resize', resize);
-        setTimeout(resize, 100);
+        // Repeated adjustments capture sandboxed latency initialization
+        setTimeout(resize, 50);
+        setTimeout(resize, 200);
 
         let vertices = [];
         for (let x of [-1, 1]) {
@@ -131,10 +141,14 @@
         }
 
         function loop() {
+            if (canvas.width === 0 || canvas.height === 0) {
+                resize();
+            }
+
             ctx.fillStyle = '#111';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            angles.xy += 0.005; // Gentle background spin
+            angles.xy += 0.005;
 
             const projected2D = [];
             const cx = canvas.width / 2;
