@@ -208,7 +208,7 @@
                 }
                 for (let i = 0; i < vertices.length; i += 2) {
                     if (i + 1 < vertices.length) edges.push([i, i + 1]);
-                    if (i + 2 < vertices.length; i++) edges.push([i, i + 2]);
+                    if (i + 2 < vertices.length) edges.push([i, i + 2]);
                 }
             }
             else if (type === "hexagon" || type === "octagon") {
@@ -310,4 +310,3 @@ requestAnimationFrame(loop);
 }
 generateShape("cube");
 loop();
-
