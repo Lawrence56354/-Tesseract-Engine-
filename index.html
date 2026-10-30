@@ -8,49 +8,39 @@
             box-sizing: border-box;
             user-select: none;
         }
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             background-color: #111;
-            color: #eee;
-            font-family: monospace;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            width: 100vw;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 65%; /* Hardcodes the exact screen footprint for the rendering view */
+            background: #000;
+            position: relative;
         }
         #canvas {
             display: block;
-            background: #000;
             width: 100%;
-            flex: 1;
-            min-height: 0;
+            height: 100%;
         }
-        /* SCROLL CONTAINER WITH VISIBLE SCROLLBAR STYLE */
+        /* SCROLL PANEL WRAPPER */
         #scroll-wrapper {
             width: 100%;
-            max-height: 120px;
-            overflow-y: scroll;
+            height: 35%; /* Fixed footprint allocation for buttons */
+            overflow-y: scroll; /* Forces scrolling capability permanently */
             background: #1a1a1a;
             border-top: 2px solid #333;
-        }
-        #scroll-wrapper::-webkit-scrollbar {
-            width: 8px;
-        }
-        #scroll-wrapper::-webkit-scrollbar-thumb {
-            background: #555;
-            border-radius: 4px;
-        }
-        #scroll-wrapper::-webkit-scrollbar-thumb:hover {
-            background: #00ffcc;
         }
         #controls {
             width: 100%;
             padding: 6px;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 5px;
+            gap: 4px;
         }
         button {
             background: #383838;
@@ -79,16 +69,19 @@
             background: #222;
             border-radius: 3px;
             margin-top: 4px;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
 
-    <canvas id="canvas"></canvas>
+    <div id="canvas-container">
+        <canvas id="canvas"></canvas>
+    </div>
     
     <div id="scroll-wrapper">
         <div id="controls">
-            <div class="label" style="margin-top:0;">3D POSITION</div>
+            <div class="label" style="margin-top:0;">3D MOVE KEYS</div>
             <button onclick="position.x -= 0.15">← X</button>
             <button onclick="position.x += 0.15">X →</button>
             <button onclick="position.y -= 0.15">↑ Y</button>
@@ -96,13 +89,13 @@
             
             <button onclick="position.z += 0.15">In Z</button>
             <button onclick="position.z -= 0.15">Out Z</button>
-            <button onclick="resetPosition()" style="grid-column: span 2; background: #555;">Reset Pos</button>
+            <button onclick="resetPosition()" style="grid-column: span 2; background: #555;">Reset Cube</button>
 
-            <div class="label">4D W-SHIFT</div>
+            <div class="label">4D W-SHIFT CONTROLS</div>
             <button onclick="position.w += 0.15" style="grid-column: span 2; background:#0284c7;">+W Shift</button>
             <button onclick="position.w -= 0.15" style="grid-column: span 2; background:#0284c7;">-W Shift</button>
 
-            <div class="label">4D ROTATIONS</div>
+            <div class="label">4D PLANE ROTATIONS</div>
             <button onclick="angles.xw += 0.15">XW L</button>
             <button onclick="angles.xw -= 0.15">XW R</button>
             <button onclick="angles.yw += 0.15">YW L</button>
@@ -119,7 +112,10 @@
             canvas.height = canvas.clientHeight || 240;
         }
         window.addEventListener('resize', resize);
-        setTimeout(resize, 100);
+        window.addEventListener('load', resize);
+        // Step latency adjustments ensure safe sizing parameters are calculated
+        setTimeout(resize, 50);
+        setTimeout(resize, 300);
 
         let vertices = [];
         for (let x of [-1, 1]) {
@@ -137,6 +133,7 @@
 
         function resetPosition() {
             position = { x: 0, y: 0, z: 0, w: 0 };
+            angles = { xw: 0, yw: 0, zw: 0, xy: 0.3, xz: 0.3 };
         }
 
         const edges = [];
@@ -170,9 +167,9 @@
             ctx.fillStyle = '#111';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            angles.xy += 0.005; // Auto back-spin
+            angles.xy += 0.005; // Standard 3D structural back-spin
 
-            // Boundary clamping safety checks so cube cannot explode out of division scope
+            // Clamp positions to avoid infinite distortion anomalies
             if (position.w > 1.8) position.w = 1.8;
             if (position.w < -1.8) position.w = -1.8;
 
@@ -204,8 +201,8 @@
             });
 
             edges.forEach(edge => {
-                const p1 = projected2D[edge[0]];
-                const p2 = projected2D[edge[1]];
+                const p1 = projected2D[edge];
+                const p2 = projected2D[edge];
                 if (!p1 || !p2) return;
                 
                 const avgW = (p1.w + p2.w) / 2;
