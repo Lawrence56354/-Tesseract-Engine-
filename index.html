@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>4D Tesseract Space Engine</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #111;
+            color: #eee;
+            font-family: monospace;
+            overflow: hidden;
+        }
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vw;
+            max-height: 80vh;
+        }
+        #controls {
+            padding: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+            background: #222;
+            border-top: 1px solid #444;
+        }
+        .key {
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+    
+    <div id="controls">
+        <strong>4D ENGINE CONTROLS:</strong><br>
+        • 3D Movement: <span class="key">W</span>/<span class="key">S</span> (Up/Down), <span class="key">A</span>/<span class="key">D</span> (Left/Right), <span class="key">Q</span>/<span class="key">E</span> (Forward/Backward)<br>
+        • 4D W-Axis Shift: <span class="key">R</span> (Move Positive W), <span class="key">F</span> (Move Negative W)<br>
+        • 4D Rotations: <span class="key">1</span>/<span class="key">2</span> (XW rotation), <span class="key">3</span>/<span class="key">4</span> (YW rotation), <span class="key">5</span>/<span class="key">6</span> (ZW rotation)<br>
+        <span style="color:#00ffcc;">Notice how shifting on the W-axis makes parts of the cube shrink or expand toward the center point!</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight * 0.8;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 1. Generate the 16 vertices of a 4D Hypercube (Tesseract)
+        let vertices = [];
+        for (let x of [-1, 1]) {
+            for (let y of [-1, 1]) {
+                for (let z of [-1, 1]) {
+                    for (let w of [-1, 1]) {
+                        vertices.push({x, y, z, w});
+                    }
+                }
+            }
+        }
+
+        // Object transformations in 4D space
+        let position = { x: 0, y: 0, z: 0, w: 0 };
+        let angles = { xw: 0, yw: 0, zw: 0, xy: 0.3, xz: 0.3 }; // Some initial 3D rotation for better visibility
+
+        // Track active keys
+        const keys = {};
+        window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+        // Connect vertices that differ by exactly one coordinate (forming the 4D grid lines)
+        const edges = [];
+        for (let i = 0; i < vertices.length; i++) {
+            for (let j = i + 1; j < vertices.length; j++) {
+                let diff = 0;
+                if (vertices[i].x !== vertices[j].x) diff++;
+                if (vertices[i].y !== vertices[j].y) diff++;
+                if (vertices[i].z !== vertices[j].z) diff++;
+                if (vertices[i].w !== vertices[j].w) diff++;
+                if (diff === 1) edges.push([i, j]);
+            }
+        }
+
+        // 4D Rotation functions
+        function rotateXW(p, angle) {
+            let cos = Math.cos(angle), sin = Math.sin(angle);
+            return { x: p.x * cos - p.w * sin, y: p.y, z: p.z, w: p.x * sin + p.w * cos };
+        }
+
+        function rotateYW(p, angle) {
+            let cos = Math.cos(angle), sin = Math.sin(angle);
+            return { x: p.x, y: p.y * cos - p.w * sin, z: p.z, w: p.y * sin + p.w * cos };
+        }
+
+        function rotateZW(p, angle) {
+            let cos = Math.cos(angle), sin = Math.sin(angle);
+            return { x: p.x, y: p.y, z: p.z * cos - p.w * sin, w: p.z * sin + p.w * cos };
+        }
+
+        function rotateXY(p, angle) {
+            let cos = Math.cos(angle), sin = Math.sin(angle);
+            return { x: p.x * cos - p.y * sin, y: p.x * sin + p.y * cos, z: p.z, w: p.w };
+        }
+
+        function updatePhysics() {
+            // Handle translations
+            if (keys['a']) position.x -= 0.05;
+            if (keys['d']) position.x += 0.05;
+            if (keys['s']) position.y += 0.05; // Standard screen inversion
+            if (keys['w']) position.y -= 0.05;
+            if (keys['q']) position.z -= 0.05;
+            if (keys['e']) position.z += 0.05;
+            if (keys['r']) position.w += 0.05; // Shifting into 4th Dimension
+            if (keys['f']) position.w -= 0.05;
+
+            // Handle 4D Rotations
+            if (keys['1']) angles.xw += 0.02;
+            if (keys['2']) angles.xw -= 0.02;
+            if (keys['3']) angles.yw += 0.02;
+            if (keys['4']) angles.yw -= 0.02;
+            if (keys['5']) angles.zw += 0.02;
+            if (keys['6']) angles.zw -= 0.02;
+            
+            // Constant slight rotation just to keep it alive visually
+            angles.xy += 0.005;
+        }
+
+        function loop() {
+            updatePhysics();
+
+            // Clear screen
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const projected2D = [];
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // Process each 4D vector point
+            vertices.forEach(v => {
+                // 1. Apply rotations inside the 4D matrix space
+                let p = rotateXW(v, angles.xw);
+                p = rotateYW(p, angles.yw);
+                p = rotateZW(p, angles.zw);
+                p = rotateXY(p, angles.xy);
+
+                // 2. Add translation coordinates
+                let x = p.x + position.x;
+                let y = p.y + position.y;
+                let z = p.z + position.z;
+                let w = p.w + position.w;
+
+                // 3. 4D perspective projection to 3D space
+                // Distance value prevents division by zero if object crosses focal length
+                let distance4D = 3; 
+                let factor4D = 1 / (distance4D - w);
+                let x3d = x * factor4D;
+                let y3d = y * factor4D;
+                let z3d = z * factor4D;
+
+                // 4. 3D perspective projection to 2D screen space
+                let distance3D = 2;
+                let factor2D = 1 / (distance3D - z3d);
+                let screenX = cx + x3d * factor2D * canvas.width * 0.4;
+                let screenY = cy + y3d * factor2D * canvas.width * 0.4;
+
+                projected2D.push({x: screenX, y: screenY, w: w});
+            });
+
+            // Draw the edges
+            edges.forEach(edge => {
+                const p1 = projected2D[edge[0]];
+                const p2 = projected2D[edge[1]];
+
+                // Change line color depth properties based on average 4D W position depth
+                const avgW = (p1.w + p2.w) / 2;
+                const brightness = Math.floor((avgW + 2) * 50); // Map normalized boundaries
+                
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = `rgb(0, ${Math.min(255, Math.max(100, brightness + 100))}, ${Math.min(255, Math.max(150, brightness + 180))})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+
+            // Draw vertices nodes
+            projected2D.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+            });
+
+            // Status display box overlay
+            ctx.fillStyle = '#00ffcc';
+            ctx.font = '12px monospace';
+            ctx.fillText(`Cube W-Position Offset: ${position.w.toFixed(2)}`, 20, 30);
+
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
