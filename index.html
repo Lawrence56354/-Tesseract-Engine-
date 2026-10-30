@@ -24,30 +24,40 @@
             display: block;
             background: #000;
             width: 100%;
-            flex: 1 1 auto;
+            flex: 1;
             min-height: 0;
         }
-        /* SCROLLABLE CONTAINER FOR CONTROLS */
+        /* SCROLL CONTAINER WITH VISIBLE SCROLLBAR STYLE */
         #scroll-wrapper {
             width: 100%;
-            max-height: 140px; /* Limits the control area height */
-            overflow-y: auto;  /* Turns on scrolling when buttons exceed the height */
+            max-height: 120px;
+            overflow-y: scroll;
             background: #1a1a1a;
-            border-top: 1px solid #333;
+            border-top: 2px solid #333;
+        }
+        #scroll-wrapper::-webkit-scrollbar {
+            width: 8px;
+        }
+        #scroll-wrapper::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+        #scroll-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #00ffcc;
         }
         #controls {
             width: 100%;
             padding: 6px;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 4px;
+            gap: 5px;
         }
         button {
             background: #383838;
             color: #fff;
             border: none;
-            padding: 8px 2px;
-            border-radius: 3px;
+            padding: 10px 2px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 11px;
             font-family: monospace;
@@ -65,8 +75,10 @@
             text-align: center;
             font-size: 10px;
             color: #00ffcc;
-            padding: 3px 0;
-            letter-spacing: 0.5px;
+            padding: 4px 0;
+            background: #222;
+            border-radius: 3px;
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -74,10 +86,9 @@
 
     <canvas id="canvas"></canvas>
     
-    <!-- This wrapper lets you scroll through the control layout -->
     <div id="scroll-wrapper">
         <div id="controls">
-            <div class="label">3D MOVE / 4D W-SHIFT</div>
+            <div class="label" style="margin-top:0;">3D POSITION</div>
             <button onclick="position.x -= 0.15">← X</button>
             <button onclick="position.x += 0.15">X →</button>
             <button onclick="position.y -= 0.15">↑ Y</button>
@@ -85,10 +96,13 @@
             
             <button onclick="position.z += 0.15">In Z</button>
             <button onclick="position.z -= 0.15">Out Z</button>
-            <button onclick="position.w += 0.15" style="background:#0284c7;">+W Shift</button>
-            <button onclick="position.w -= 0.15" style="background:#0284c7;">-W Shift</button>
+            <button onclick="resetPosition()" style="grid-column: span 2; background: #555;">Reset Pos</button>
 
-            <div class="label">4D ROTATIONS (SPIN PLANES)</div>
+            <div class="label">4D W-SHIFT</div>
+            <button onclick="position.w += 0.15" style="grid-column: span 2; background:#0284c7;">+W Shift</button>
+            <button onclick="position.w -= 0.15" style="grid-column: span 2; background:#0284c7;">-W Shift</button>
+
+            <div class="label">4D ROTATIONS</div>
             <button onclick="angles.xw += 0.15">XW L</button>
             <button onclick="angles.xw -= 0.15">XW R</button>
             <button onclick="angles.yw += 0.15">YW L</button>
@@ -101,12 +115,11 @@
         const ctx = canvas.getContext('2d');
 
         function resize() {
-            canvas.width = canvas.clientWidth;
-            canvas.height = canvas.clientHeight;
+            canvas.width = canvas.clientWidth || 480;
+            canvas.height = canvas.clientHeight || 240;
         }
         window.addEventListener('resize', resize);
-        setTimeout(resize, 50);
-        setTimeout(resize, 200);
+        setTimeout(resize, 100);
 
         let vertices = [];
         for (let x of [-1, 1]) {
@@ -121,6 +134,10 @@
 
         let position = { x: 0, y: 0, z: 0, w: 0 };
         let angles = { xw: 0, yw: 0, zw: 0, xy: 0.3, xz: 0.3 };
+
+        function resetPosition() {
+            position = { x: 0, y: 0, z: 0, w: 0 };
+        }
 
         const edges = [];
         for (let i = 0; i < vertices.length; i++) {
@@ -148,14 +165,16 @@
         }
 
         function loop() {
-            if (canvas.width === 0 || canvas.height === 0) {
-                resize();
-            }
+            if (canvas.width === 0 || canvas.height === 0) resize();
 
             ctx.fillStyle = '#111';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            angles.xy += 0.005;
+            angles.xy += 0.005; // Auto back-spin
+
+            // Boundary clamping safety checks so cube cannot explode out of division scope
+            if (position.w > 1.8) position.w = 1.8;
+            if (position.w < -1.8) position.w = -1.8;
 
             const projected2D = [];
             const cx = canvas.width / 2;
@@ -171,23 +190,23 @@
                 let z = p.z + position.z;
                 let w = p.w + position.w;
 
-                let factor4D = 1 / (3 - w);
+                let factor4D = 1 / (3.0 - w);
                 let x3d = x * factor4D;
                 let y3d = y * factor4D;
                 let z3d = z * factor4D;
 
-                let factor2D = 1 / (2 - z3d);
+                let factor2D = 1 / (2.5 - z3d);
                 let minDim = Math.min(canvas.width, canvas.height);
-                let screenX = cx + x3d * factor2D * minDim * 0.45;
-                let screenY = cy + y3d * factor2D * minDim * 0.45;
+                let screenX = cx + x3d * factor2D * minDim * 0.5;
+                let screenY = cy + y3d * factor2D * minDim * 0.5;
 
                 projected2D.push({x: screenX, y: screenY, w: w});
             });
 
             edges.forEach(edge => {
-                const p1 = projected2D[edge];
-                const p2 = projected2D[edge];
-                if(!p1 || !p2) return;
+                const p1 = projected2D[edge[0]];
+                const p2 = projected2D[edge[1]];
+                if (!p1 || !p2) return;
                 
                 const avgW = (p1.w + p2.w) / 2;
                 const brightness = Math.floor((avgW + 2) * 50);
