@@ -270,8 +270,8 @@
 const cy = canvas.height / 2;
 vertices.forEach(v => {
 let p = rotateXW(v, angles.xw);
-p = rotateYW(p, angles.yw);
-p = rotateXY(p, angles.xy);
+p = rotateYW(v, angles.yw);
+p = rotateXY(v, angles.xy);
 let x = p.x + position.x;
 let y = p.y + position.y;
 let z = p.z + position.z;
