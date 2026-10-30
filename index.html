@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>4D Tesseract Space Engine</title>
+    <title>Multi-Shape 4D Space Engine</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,7 +18,7 @@
         }
         #canvas-container {
             width: 100%;
-            height: 65%; /* Hardcodes the exact screen footprint for the rendering view */
+            height: 60%;
             background: #000;
             position: relative;
         }
@@ -27,11 +27,10 @@
             width: 100%;
             height: 100%;
         }
-        /* SCROLL PANEL WRAPPER */
         #scroll-wrapper {
             width: 100%;
-            height: 35%; /* Fixed footprint allocation for buttons */
-            overflow-y: scroll; /* Forces scrolling capability permanently */
+            height: 40%;
+            overflow-y: scroll;
             background: #1a1a1a;
             border-top: 2px solid #333;
         }
@@ -41,6 +40,25 @@
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 4px;
+        }
+        #shape-select {
+            grid-column: span 4;
+            background: #2b6cb0;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        #shape-select option {
+            background: #222;
+            color: #fff;
         }
         button {
             background: #383838;
@@ -81,6 +99,14 @@
     
     <div id="scroll-wrapper">
         <div id="controls">
+            <select id="shape-select" onchange="changeShape(this.value)">
+                <option value="cube">📦 ACTIVE HYPER-GEOMETRY: CUBE (TESSERACT)</option>
+                <option value="triangle">🔺 ACTIVE HYPER-GEOMETRY: TRIANGLE PRISM</option>
+                <option value="sphere">🌐 ACTIVE HYPER-GEOMETRY: SPHERE (HYPERSPHERE)</option>
+                <option value="hexagon">⬢ ACTIVE HYPER-GEOMETRY: HEXAGON HYPERPRISM</option>
+                <option value="octagon">🛑 ACTIVE HYPER-GEOMETRY: OCTAGON HYPERPRISM</option>
+            </select>
+
             <div class="label" style="margin-top:0;">3D MOVE KEYS</div>
             <button onclick="position.x -= 0.15">← X</button>
             <button onclick="position.x += 0.15">X →</button>
@@ -89,7 +115,7 @@
             
             <button onclick="position.z += 0.15">In Z</button>
             <button onclick="position.z -= 0.15">Out Z</button>
-            <button onclick="resetPosition()" style="grid-column: span 2; background: #555;">Reset Cube</button>
+            <button onclick="resetPosition()" style="grid-column: span 2; background: #555;">Reset Geometry</button>
 
             <div class="label">4D W-SHIFT CONTROLS</div>
             <button onclick="position.w += 0.15" style="grid-column: span 2; background:#0284c7;">+W Shift</button>
@@ -107,45 +133,113 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
+        let vertices = [];
+        let edges = [];
+        let position = { x: 0, y: 0, z: 0, w: 0 };
+        let angles = { xw: 0, yw: 0, zw: 0, xy: 0.3, xz: 0.3 };
+        let currentShapeType = "cube";
+
         function resize() {
             canvas.width = canvas.clientWidth || 480;
             canvas.height = canvas.clientHeight || 240;
         }
         window.addEventListener('resize', resize);
         window.addEventListener('load', resize);
-        // Step latency adjustments ensure safe sizing parameters are calculated
         setTimeout(resize, 50);
         setTimeout(resize, 300);
 
-        let vertices = [];
-        for (let x of [-1, 1]) {
-            for (let y of [-1, 1]) {
-                for (let z of [-1, 1]) {
-                    for (let w of [-1, 1]) {
-                        vertices.push({x, y, z, w});
+        function generateShape(type) {
+            vertices = [];
+            edges = [];
+            currentShapeType = type;
+
+            if (type === "cube") {
+                for (let x of [-1, 1]) {
+                    for (let y of [-1, 1]) {
+                        for (let z of [-1, 1]) {
+                            for (let w of [-1, 1]) {
+                                vertices.push({x, y, z, w});
+                            }
+                        }
+                    }
+                }
+                for (let i = 0; i < vertices.length; i++) {
+                    for (let j = i + 1; j < vertices.length; j++) {
+                        let diff = 0;
+                        if (vertices[i].x !== vertices[j].x) diff++;
+                        if (vertices[i].y !== vertices[j].y) diff++;
+                        if (vertices[i].z !== vertices[j].z) diff++;
+                        if (vertices[i].w !== vertices[j].w) diff++;
+                        if (diff === 1) edges.push([i, j]);
+                    }
+                }
+            } 
+            else if (type === "triangle") {
+                vertices = [
+                    {x: 0, y: -1, z: -0.5, w: -0.5},
+                    {x: -0.86, y: 0.5, z: -0.5, w: -0.5},
+                    {x: 0.86, y: 0.5, z: -0.5, w: -0.5},
+                    {x: 0, y: -1, z: 1, w: -0.5},
+                    {x: -0.86, y: 0.5, z: 1, w: -0.5},
+                    {x: 0.86, y: 0.5, z: 1, w: -0.5}
+                ];
+                let len = vertices.length;
+                for (let i = 0; i < len; i++) {
+                    vertices.push({x: vertices[i].x, y: vertices[i].y, z: vertices[i].z, w: 1});
+                }
+                for (let i = 0; i < vertices.length; i++) {
+                    for (let j = i + 1; j < vertices.length; j++) {
+                        edges.push([i, j]);
+                    }
+                }
+            } 
+            else if (type === "sphere") {
+                let steps = 6;
+                for (let i = 0; i < steps; i++) {
+                    let lat = (i / (steps - 1)) * Math.PI - Math.PI / 2;
+                    for (let j = 0; j < steps * 2; j++) {
+                        let lon = (j / (steps * 2)) * 2 * Math.PI;
+                        for (let wOfs of [-0.6, 0.6]) {
+                            let x = Math.cos(lat) * Math.cos(lon);
+                            let y = Math.cos(lat) * Math.sin(lon);
+                            let z = Math.sin(lat);
+                            vertices.push({x, y, z, w: wOfs});
+                        }
+                    }
+                }
+                for (let i = 0; i < vertices.length; i += 2) {
+                    if (i + 1 < vertices.length) edges.push([i, i + 1]);
+                    if (i + 2 < vertices.length) edges.push([i, i + 2]);
+                }
+            }
+            else if (type === "hexagon" || type === "octagon") {
+                let sides = type === "hexagon" ? 6 : 8;
+                for (let theta = 0; theta < sides; theta++) {
+                    let angle = (theta / sides) * 2 * Math.PI;
+                    let x = Math.cos(angle);
+                    let y = Math.sin(angle);
+                    for (let z of [-0.8, 0.8]) {
+                        for (let w of [-0.8, 0.8]) {
+                            vertices.push({x, y, z, w});
+                        }
+                    }
+                }
+                for (let i = 0; i < vertices.length; i++) {
+                    for (let j = i + 1; j < vertices.length; j++) {
+                        let dist = Math.hypot(vertices[i].x - vertices[j].x, vertices[i].y - vertices[j].y, vertices[i].z - vertices[j].z, vertices[i].w - vertices[j].w);
+                        if (dist < 1.2) edges.push([i, j]);
                     }
                 }
             }
         }
 
-        let position = { x: 0, y: 0, z: 0, w: 0 };
-        let angles = { xw: 0, yw: 0, zw: 0, xy: 0.3, xz: 0.3 };
+        function changeShape(shapeVal) {
+            generateShape(shapeVal);
+        }
 
         function resetPosition() {
             position = { x: 0, y: 0, z: 0, w: 0 };
             angles = { xw: 0, yw: 0, zw: 0, xy: 0.3, xz: 0.3 };
-        }
-
-        const edges = [];
-        for (let i = 0; i < vertices.length; i++) {
-            for (let j = i + 1; j < vertices.length; j++) {
-                let diff = 0;
-                if (vertices[i].x !== vertices[j].x) diff++;
-                if (vertices[i].y !== vertices[j].y) diff++;
-                if (vertices[i].z !== vertices[j].z) diff++;
-                if (vertices[i].w !== vertices[j].w) diff++;
-                if (diff === 1) edges.push([i, j]);
-            }
         }
 
         function rotateXW(p, angle) {
@@ -167,62 +261,54 @@
             ctx.fillStyle = '#111';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            angles.xy += 0.005; // Standard 3D structural back-spin
+            angles.xy += 0.004;
 
-            // Clamp positions to avoid infinite distortion anomalies
             if (position.w > 1.8) position.w = 1.8;
             if (position.w < -1.8) position.w = -1.8;
 
             const projected2D = [];
             const cx = canvas.width / 2;
-            const cy = canvas.height / 2;
+const cy = canvas.height / 2;
+vertices.forEach(v => {
+let p = rotateXW(v, angles.xw);
+p = rotateYW(p, angles.yw);
+p = rotateXY(p, angles.xy);
+let x = p.x + position.x;
+let y = p.y + position.y;
+let z = p.z + position.z;
+let w = p.w + position.w;
+let factor4D = 1 / (3.2 - w);
+let x3d = x * factor4D;
+let y3d = y * factor4D;
+let z3d = z * factor4D;
+let factor2D = 1 / (2.6 - z3d);
+let minDim = Math.min(canvas.width, canvas.height);
+let screenX = cx + x3d * factor2D * minDim * 0.52;
+let screenY = cy + y3d * factor2D * minDim * 0.52;
+projected2D.push({x: screenX, y: screenY, w: w});
+});
+edges.forEach(edge => {
+const p1 = projected2D[edge];
+const p2 = projected2D[edge];
+if (!p1 || !p2) return;
+const avgW = (p1.w + p2.w) / 2;
+const brightness = Math.floor((avgW + 2) * 50);
+ctx.beginPath();
+ctx.moveTo(p1.x, p1.y);
+ctx.lineTo(p2.x, p2.y);
+if (currentShapeType === 'sphere') {
+ctx.strokeStyle = rgba(56, 189, 248, 0.45);
+} else {
+ctx.strokeStyle = rgb(0, ${Math.min(255, Math.max(100, brightness + 100))}, ${Math.min(255, Math.max(150, brightness + 180))});
+}
+ctx.lineWidth = currentShapeType === 'sphere' ? 0.8 : 1.4;
+ctx.stroke();
+});
+ctx.fillStyle = '#00ffcc';
+ctx.font = '10px monospace';
+ctx.fillText(W-Pos: ${position.w.toFixed(2)}, 10, 20);
+requestAnimationFrame(loop);
+}
+generateShape("cube");
+loop();
 
-            vertices.forEach(v => {
-                let p = rotateXW(v, angles.xw);
-                p = rotateYW(p, angles.yw);
-                p = rotateXY(p, angles.xy);
-
-                let x = p.x + position.x;
-                let y = p.y + position.y;
-                let z = p.z + position.z;
-                let w = p.w + position.w;
-
-                let factor4D = 1 / (3.0 - w);
-                let x3d = x * factor4D;
-                let y3d = y * factor4D;
-                let z3d = z * factor4D;
-
-                let factor2D = 1 / (2.5 - z3d);
-                let minDim = Math.min(canvas.width, canvas.height);
-                let screenX = cx + x3d * factor2D * minDim * 0.5;
-                let screenY = cy + y3d * factor2D * minDim * 0.5;
-
-                projected2D.push({x: screenX, y: screenY, w: w});
-            });
-
-            edges.forEach(edge => {
-                const p1 = projected2D[edge];
-                const p2 = projected2D[edge];
-                if (!p1 || !p2) return;
-                
-                const avgW = (p1.w + p2.w) / 2;
-                const brightness = Math.floor((avgW + 2) * 50);
-                
-                ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.strokeStyle = `rgb(0, ${Math.min(255, Math.max(100, brightness + 100))}, ${Math.min(255, Math.max(150, brightness + 180))})`;
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-            });
-
-            ctx.fillStyle = '#00ffcc';
-            ctx.font = '10px monospace';
-            ctx.fillText(`W-Pos: ${position.w.toFixed(2)}`, 10, 20);
-
-            requestAnimationFrame(loop);
-        }
-        loop();
-    </script>
-</body>
-</html>
