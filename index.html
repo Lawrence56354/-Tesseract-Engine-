@@ -287,7 +287,7 @@ let screenY = cy + y3d * factor2D * minDim * 0.52;
 projected2D.push({x: screenX, y: screenY, w: w});
 });
 edges.forEach(edge => {
-// BUG FIX: Look up indices separately using edge[0] and edge[1]
+// FIXED INDICES: Pull elements explicitly from array indexes
 const p1 = projected2D[edge[0]];
 const p2 = projected2D[edge[1]];
 if (!p1 || !p2) return;
