@@ -12,30 +12,29 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
         }
         #canvas {
             display: block;
             background: #000;
             width: 100%;
-            max-width: 480px;
-            height: 240px;
+            flex-grow: 1;
         }
         #controls {
             width: 100%;
-            max-width: 480px;
-            padding: 10px;
+            padding: 6px;
             background: #222;
             box-sizing: border-box;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 5px;
+            gap: 4px;
         }
         button {
             background: #444;
             color: #fff;
             border: none;
-            padding: 8px 4px;
+            padding: 6px 2px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 11px;
@@ -51,9 +50,10 @@
         .label {
             grid-column: span 4;
             text-align: center;
-            font-size: 11px;
+            font-size: 10px;
             color: #00ffcc;
-            margin-bottom: 2px;
+            margin-top: 2px;
+            margin-bottom: 1px;
         }
     </style>
 </head>
@@ -63,29 +63,33 @@
     
     <div id="controls">
         <div class="label">3D MOVE / 4D W-SHIFT</div>
-        <button onclick="position.x -= 0.1">← X</button>
-        <button onclick="position.x += 0.1">X →</button>
-        <button onclick="position.y -= 0.1">↑ Y</button>
-        <button onclick="position.y += 0.1">Y ↓</button>
+        <button onclick="position.x -= 0.15">← X</button>
+        <button onclick="position.x += 0.15">X →</button>
+        <button onclick="position.y -= 0.15">↑ Y</button>
+        <button onclick="position.y += 0.15">Y ↓</button>
         
-        <button onclick="position.z += 0.1">In Z</button>
-        <button onclick="position.z -= 0.1">Out Z</button>
-        <button onclick="position.w += 0.1" style="background:#0284c7;">+W Shift</button>
-        <button onclick="position.w -= 0.1" style="background:#0284c7;">-W Shift</button>
+        <button onclick="position.z += 0.15">In Z</button>
+        <button onclick="position.z -= 0.15">Out Z</button>
+        <button onclick="position.w += 0.15" style="background:#0284c7;">+W Shift</button>
+        <button onclick="position.w -= 0.15" style="background:#0284c7;">-W Shift</button>
 
         <div class="label">4D ROTATIONS (SPIN PLANES)</div>
-        <button onclick="angles.xw += 0.1">XW L</button>
-        <button onclick="angles.xw -= 0.1">XW R</button>
-        <button onclick="angles.yw += 0.1">YW L</button>
-        <button onclick="angles.yw -= 0.1">YW R</button>
+        <button onclick="angles.xw += 0.15">XW L</button>
+        <button onclick="angles.xw -= 0.15">XW R</button>
+        <button onclick="angles.yw += 0.15">YW L</button>
+        <button onclick="angles.yw -= 0.15">YW R</button>
     </div>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        canvas.width = 480;
-        canvas.height = 240;
+        function resize() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        setTimeout(resize, 100);
 
         let vertices = [];
         for (let x of [-1, 1]) {
@@ -130,7 +134,7 @@
             ctx.fillStyle = '#111';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            angles.xy += 0.005; // Constant default rotation
+            angles.xy += 0.005; // Gentle background spin
 
             const projected2D = [];
             const cx = canvas.width / 2;
@@ -152,8 +156,9 @@
                 let z3d = z * factor4D;
 
                 let factor2D = 1 / (2 - z3d);
-                let screenX = cx + x3d * factor2D * canvas.width * 0.4;
-                let screenY = cy + y3d * factor2D * canvas.width * 0.4;
+                let minDim = Math.min(canvas.width, canvas.height);
+                let screenX = cx + x3d * factor2D * minDim * 0.45;
+                let screenY = cy + y3d * factor2D * minDim * 0.45;
 
                 projected2D.push({x: screenX, y: screenY, w: w});
             });
@@ -161,6 +166,8 @@
             edges.forEach(edge => {
                 const p1 = projected2D[edge[0]];
                 const p2 = projected2D[edge[1]];
+                if(!p1 || !p2) return;
+                
                 const avgW = (p1.w + p2.w) / 2;
                 const brightness = Math.floor((avgW + 2) * 50);
                 
