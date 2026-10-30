@@ -140,15 +140,12 @@
         let currentShapeType = "cube";
 
         function resize() {
-            const w = canvas.clientWidth;
-            const h = canvas.clientHeight;
-            if (w > 0 && h > 0) {
-                canvas.width = w;
-                canvas.height = h;
-            }
+            canvas.width = canvas.clientWidth || 480;
+            canvas.height = canvas.clientHeight || 240;
         }
         window.addEventListener('resize', resize);
         window.addEventListener('load', resize);
+        setTimeout(resize, 100);
 
         function generateShape(type) {
             vertices = [];
@@ -211,7 +208,7 @@
                 }
                 for (let i = 0; i < vertices.length; i += 2) {
                     if (i + 1 < vertices.length) edges.push([i, i + 1]);
-                    if (i + 2 < vertices.length) edges.push([i, i + 2]);
+                    if (i + 2 < vertices.length; i++) edges.push([i, i + 2]);
                 }
             }
             else if (type === "hexagon" || type === "octagon") {
@@ -258,20 +255,18 @@
         }
 
         function loop() {
-            // Safety Check: If the canvas hasn't finished setup, hold physics computations
-            if (!canvas.width || !canvas.height || canvas.width === 0 || canvas.height === 0) {
-                resize();
-                requestAnimationFrame(loop);
-                return;
-            }
+            if (canvas.width === 0 || canvas.height === 0) resize();
 
             ctx.fillStyle = '#111';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-angles.xy += 0.004;
-if (position.w > 1.8) position.w = 1.8;
-if (position.w < -1.8) position.w = -1.8;
-const projected2D = [];
-const cx = canvas.width / 2;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            angles.xy += 0.004;
+
+            if (position.w > 1.8) position.w = 1.8;
+            if (position.w < -1.8) position.w = -1.8;
+
+            const projected2D = [];
+            const cx = canvas.width / 2;
 const cy = canvas.height / 2;
 vertices.forEach(v => {
 let p = rotateXW(v, angles.xw);
@@ -314,6 +309,5 @@ ctx.fillText(W-Pos: ${position.w.toFixed(2)}, 10, 20);
 requestAnimationFrame(loop);
 }
 generateShape("cube");
-resize();
 loop();
 
