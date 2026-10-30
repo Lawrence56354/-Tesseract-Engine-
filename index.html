@@ -267,6 +267,7 @@
 
             const projected2D = [];
             const cx = canvas.width / 2;
+Use code with caution.
 const cy = canvas.height / 2;
 vertices.forEach(v => {
 let p = rotateXW(v, angles.xw);
@@ -287,8 +288,8 @@ let screenY = cy + y3d * factor2D * minDim * 0.52;
 projected2D.push({x: screenX, y: screenY, w: w});
 });
 edges.forEach(edge => {
-const p1 = projected2D[edge];
-const p2 = projected2D[edge];
+const p1 = projected2D[edge[0]];
+const p2 = projected2D[edge[1]];
 if (!p1 || !p2) return;
 const avgW = (p1.w + p2.w) / 2;
 const brightness = Math.floor((avgW + 2) * 50);
