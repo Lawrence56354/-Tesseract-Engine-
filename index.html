@@ -24,27 +24,32 @@
             display: block;
             background: #000;
             width: 100%;
-            flex: 1 1 auto; /* Fill remaining layout workspace exactly */
+            flex: 1 1 auto;
             min-height: 0;
+        }
+        /* SCROLLABLE CONTAINER FOR CONTROLS */
+        #scroll-wrapper {
+            width: 100%;
+            max-height: 140px; /* Limits the control area height */
+            overflow-y: auto;  /* Turns on scrolling when buttons exceed the height */
+            background: #1a1a1a;
+            border-top: 1px solid #333;
         }
         #controls {
             width: 100%;
-            padding: 4px;
-            background: #1a1a1a;
-            flex: 0 0 auto; /* Lock block heights down completely */
+            padding: 6px;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 3px;
-            border-top: 1px solid #333;
+            gap: 4px;
         }
         button {
             background: #383838;
             color: #fff;
             border: none;
-            padding: 4px 1px;
+            padding: 8px 2px;
             border-radius: 3px;
             cursor: pointer;
-            font-size: 10px;
+            font-size: 11px;
             font-family: monospace;
             font-weight: bold;
         }
@@ -58,9 +63,9 @@
         .label {
             grid-column: span 4;
             text-align: center;
-            font-size: 9px;
+            font-size: 10px;
             color: #00ffcc;
-            padding: 1px 0;
+            padding: 3px 0;
             letter-spacing: 0.5px;
         }
     </style>
@@ -69,23 +74,26 @@
 
     <canvas id="canvas"></canvas>
     
-    <div id="controls">
-        <div class="label">3D MOVE / 4D W-SHIFT</div>
-        <button onclick="position.x -= 0.15">← X</button>
-        <button onclick="position.x += 0.15">X →</button>
-        <button onclick="position.y -= 0.15">↑ Y</button>
-        <button onclick="position.y += 0.15">Y ↓</button>
-        
-        <button onclick="position.z += 0.15">In Z</button>
-        <button onclick="position.z -= 0.15">Out Z</button>
-        <button onclick="position.w += 0.15" style="background:#0284c7;">+W Shift</button>
-        <button onclick="position.w -= 0.15" style="background:#0284c7;">-W Shift</button>
+    <!-- This wrapper lets you scroll through the control layout -->
+    <div id="scroll-wrapper">
+        <div id="controls">
+            <div class="label">3D MOVE / 4D W-SHIFT</div>
+            <button onclick="position.x -= 0.15">← X</button>
+            <button onclick="position.x += 0.15">X →</button>
+            <button onclick="position.y -= 0.15">↑ Y</button>
+            <button onclick="position.y += 0.15">Y ↓</button>
+            
+            <button onclick="position.z += 0.15">In Z</button>
+            <button onclick="position.z -= 0.15">Out Z</button>
+            <button onclick="position.w += 0.15" style="background:#0284c7;">+W Shift</button>
+            <button onclick="position.w -= 0.15" style="background:#0284c7;">-W Shift</button>
 
-        <div class="label">4D ROTATIONS (SPIN PLANES)</div>
-        <button onclick="angles.xw += 0.15">XW L</button>
-        <button onclick="angles.xw -= 0.15">XW R</button>
-        <button onclick="angles.yw += 0.15">YW L</button>
-        <button onclick="angles.yw -= 0.15">YW R</button>
+            <div class="label">4D ROTATIONS (SPIN PLANES)</div>
+            <button onclick="angles.xw += 0.15">XW L</button>
+            <button onclick="angles.xw -= 0.15">XW R</button>
+            <button onclick="angles.yw += 0.15">YW L</button>
+            <button onclick="angles.yw -= 0.15">YW R</button>
+        </div>
     </div>
 
     <script>
@@ -97,7 +105,6 @@
             canvas.height = canvas.clientHeight;
         }
         window.addEventListener('resize', resize);
-        // Repeated adjustments capture sandboxed latency initialization
         setTimeout(resize, 50);
         setTimeout(resize, 200);
 
@@ -178,8 +185,8 @@
             });
 
             edges.forEach(edge => {
-                const p1 = projected2D[edge[0]];
-                const p2 = projected2D[edge[1]];
+                const p1 = projected2D[edge];
+                const p2 = projected2D[edge];
                 if(!p1 || !p2) return;
                 
                 const avgW = (p1.w + p2.w) / 2;
