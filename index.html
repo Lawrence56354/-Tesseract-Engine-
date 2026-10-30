@@ -270,8 +270,8 @@
 const cy = canvas.height / 2;
 vertices.forEach(v => {
 let p = rotateXW(v, angles.xw);
-p = rotateYW(v, angles.yw);
-p = rotateXY(v, angles.xy);
+p = rotateYW(p, angles.yw);
+p = rotateXY(p, angles.xy);
 let x = p.x + position.x;
 let y = p.y + position.y;
 let z = p.z + position.z;
@@ -287,6 +287,7 @@ let screenY = cy + y3d * factor2D * minDim * 0.52;
 projected2D.push({x: screenX, y: screenY, w: w});
 });
 edges.forEach(edge => {
+// BUG FIX: Look up indices separately using edge[0] and edge[1]
 const p1 = projected2D[edge[0]];
 const p2 = projected2D[edge[1]];
 if (!p1 || !p2) return;
